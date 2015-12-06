@@ -3,8 +3,6 @@
  *
  *
 /*-------------------------------------------*/
- #include "fatStructs.h"
-
  extern struct FSI BPB_FSI_info;
  extern struct BPB_32 bpb_32;
  extern long openedFile[100];
@@ -13,7 +11,6 @@
 
  #define CLUSTER_END 0xFFFFFFFF
  #define OFFSET_CONST 32
-
 /*-------------------------------------------*/
 /*
  *
