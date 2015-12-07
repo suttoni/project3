@@ -528,6 +528,7 @@ int create (char *name){
 	if (DIR_entry.DIR_Name[0] == 0){
 		offset = find_cluster_empty_entry(currCluster);
 
+		i = 0;
 		while (i < 11){
 			emptyEntry.DIR_Name[i] = fileName[i];
 			++i;
@@ -535,8 +536,8 @@ int create (char *name){
 
 		// Set up the directory 
 		emptyEntry.DIR_Attr = ATTR_CONST;
-		emptyEntry.DIR_NTRes = ENTRY_LAST;
-		emptyEntry.DIR_FileSize = CLUSTER_END;
+		emptyEntry.DIR_NTRes = 0;
+		emptyEntry.DIR_FileSize = 0;
 		
 		fseek(file, bpb_32.BPB_FSI_info * bpb_32.BPB_BytsPerSec, SEEK_SET);
 		fread(&BPB_FSI_info, sizeof(struct FSI), 1, file);
@@ -579,7 +580,7 @@ int create (char *name){
 /*-------------------------------------------*/
 void open(char *name, char *mode){
 	int i = 0;
-	int temp;
+	int j = 0;
 	long offset;
 	char fileName[12];
 	struct DIR DIR_entry;
@@ -599,45 +600,42 @@ void open(char *name, char *mode){
 			++i;
 		}
 		else{
-			temp = i;
 			break;
 		}
 	}
 
 	// Fill up the rest of fileName with spaces
-	for (i = temp; i < 8; i++)
-		fileName[i] = ' ';
+	for (j = i; j < 8; j++)
+		fileName[j] = ' ';
 
 	// Accounting for extensions
-	if (name[temp++] == '.') {
-		i = 8;
+	if (name[i] == '.') {
+		i++;
+		j = 8;
 
-		while (i < 11){
-			if (name[temp] != '\0')
-				fileName[i] = name[temp++];
+		while (j < 11){
+			if (name[i] != '\0')
+				fileName[j] = name[i];
 			else{
-				temp = i;
 				break;
 			}
-
-			if (i == 10)
-				temp = ++i;
 
 			++i;
 		}
 
-		while (temp < 11){
-			fileName[temp] = ' ';
-			++temp;
+		while (j < 12){
+			fileName[j] = ' ';
+			++j;
 		}
 	}
 
 	else {
-		while (temp < 11){
-			fileName[temp] = ' ';
-			++temp;
+		while (i < 11){
+			fileName[i] = ' ';
+			++i;
 		}
 	}
+
 
 	/* Set the end of fileName to null character */
 	fileName[11] = '\0';
@@ -691,7 +689,7 @@ void open(char *name, char *mode){
 /*-------------------------------------------*/
 void close(char *name){
 	int i = 0;
-	int temp;
+	int j = 0;
 	long offset;
 	char fileName[12];
 	struct DIR DIR_entry;
@@ -711,43 +709,39 @@ void close(char *name){
 			++i;
 		}
 		else{
-			temp = i;
 			break;
 		}
 	}
 
 	// Fill up the rest of fileName with spaces
-	for (i = temp; i < 8; i++)
-		fileName[i] = ' ';
+	for (j = i; j < 8; j++)
+		fileName[j] = ' ';
 
 	// Accounting for extensions
-	if (name[temp++] == '.') {
-		i = 8;
+	if (name[i] == '.') {
+		i++;
+		j = 8;
 
-		while (i < 11){
-			if (name[temp] != '\0')
-				fileName[i] = name[temp++];
+		while (j < 11){
+			if (name[i] != '\0')
+				fileName[j] = name[i];
 			else{
-				temp = i;
 				break;
 			}
-
-			if (i == 10)
-				temp = ++i;
 
 			++i;
 		}
 
-		while (temp < 11){
-			fileName[temp] = ' ';
-			++temp;
+		while (j < 12){
+			fileName[j] = ' ';
+			++j;
 		}
 	}
 
 	else {
-		while (temp < 11){
-			fileName[temp] = ' ';
-			++temp;
+		while (i < 11){
+			fileName[i] = ' ';
+			++i;
 		}
 	}
 
@@ -767,10 +761,10 @@ void close(char *name){
 					++i;
 				}	
 
-				for (temp = i; temp < openedFileNum - 1; temp++)
-					openedFile[temp] = openedFile[temp+1];
+				for (j = i; j < openedFileNum - 1; j++)
+					openedFile[j] = openedFile[j+1];
 
-				openedFile[temp] = 0;
+				openedFile[j] = 0;
 				openedFileNum--;
 
 				while( i < readFileNum){
@@ -780,10 +774,10 @@ void close(char *name){
 					++i;
 				}
 
-				for (temp = i; temp < readFileNum - 1; temp++)
-                    openedReadFile[temp]=openedReadFile[temp + 1];
+				for (j = i; j < readFileNum - 1; j++)
+                    openedReadFile[j]=openedReadFile[j + 1];
 
-                openedReadFile[temp] = 0;
+                openedReadFile[j] = 0;
                 readFileNum--;
 
 				while (i < writeFileNum){
@@ -793,8 +787,8 @@ void close(char *name){
                     ++i;
                 }
 
-                for (temp = i; temp < writeFileNum - 1; temp++)
-                    openedWriteFile[temp]=openedWriteFile[temp + 1];
+                for (j = i; j < writeFileNum - 1; j++)
+                    openedWriteFile[j]=openedWriteFile[j + 1];
 
                 writeFileNum--;
 			}
