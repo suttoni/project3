@@ -458,7 +458,6 @@ int ls(char *name){
 /*-------------------------------------------*/
 int create (char *name){
 	int i = 0;
-	int j = 0;
 	int temp;
 	char fileName[12];
 	unsigned int newCluster;
@@ -583,7 +582,7 @@ int create (char *name){
 /*-------------------------------------------*/
 void open(char *name, char *mode){
 	int i = 0;
-	int j = 0;
+	int temp;
 	long offset;
 	char fileName[12];
 	struct DIR DIR_entry;
@@ -697,7 +696,7 @@ void open(char *name, char *mode){
 /*-------------------------------------------*/
 void close(char *name){
 	int i = 0;
-	int j = 0;
+	int temp;
 	long offset;
 	char fileName[12];
 	struct DIR DIR_entry;
