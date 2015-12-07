@@ -5,6 +5,7 @@
 /*-------------------------------------------*/
 #include "fatStructs.h"
 #include "fatUtils.h"
+
 #define ATTR_CONST 0x20
 
 /*-------------------------------------------*/
@@ -37,8 +38,11 @@ FILE *file;
 /*-------------------------------------------*/
  int cd(char *name);
  int rm(char *name);
- void openfile(char *name, char *mode);
- void close_file(char *name);
+ int info();
+ int ls(char *name);
+ int create(char *name);
+ void open(char *name, char *mode);
+ void close(char *name);
 
 
 /*-------------------------------------------*/
@@ -84,36 +88,36 @@ int main(int argc, char *argv[]){
 				if (strcmp(operation, "info") == 0)
 					info();
 
-				else if (strcmp(operation, "ls") == 0)
-					ls();
-
+				else if (strcmp(operation, "ls") == 0){
+					scanf("%s", name);
+					getchar();
+					ls(name);
+				}
 				else if (strcmp(operation, "cd") == 0){
 					scanf("%s", name);
 					getchar();
 					cd(name);
 				}
-				else if (strcmp(operation, "touch") == 0){
+				else if (strcmp(operation, "create") == 0){
 					scanf("%s", name);
 					getchar();
-					touch(name);
+					create(name);
 				}
-
 				else if (strcmp(operation, "fopen") == 0){
 					scanf("%s", name);
 					scanf("%s", mode);
 					getchar();
-					openfile(name, mode);
+					open(name, mode);
 				}
-
 				else if (strcmp(operation, "fclose") == 0){
 					scanf("%s", name);
 					getchar();
-					close_file(name);
+					close(name);
 				}
-				/*else if (strcmp(operation, "fread")==0)
+				else if (strcmp(operation, "fread")==0)
 					readfile();
 				else if (strcmp(operation, "fwrite")==0)
-					writefile();*/
+					writefile();
 				else if (strcmp(operation, "rm") == 0){
 					scanf("%s", name);
 					getchar();
@@ -134,7 +138,7 @@ int main(int argc, char *argv[]){
 					break;
 				}
 				else
-					printf("Incorrect arguments! Need <info, ls, cd, touch, fopen, fclose, fread, fwrite, rm, mkdir, rmdir, exit>\n");			
+					printf("Incorrect arguments! Need <info, ls, cd, create, fopen, fclose, fread, fwrite, rm, mkdir, rmdir, exit>\n");			
 			}
 			return 0;
 		}
@@ -238,7 +242,303 @@ int cd(char *name){
  *
  *
 /*-------------------------------------------*/
-void close_file(char *name){
+int rm (char *name){
+	int i, j;
+	long offset;
+	unsigned int next_cluster;
+	char fileName[12];
+	char empty[32];
+	struct DIR DIR_entry;
+	
+	while (name[i] != '\0') {
+		if (name[i] < 'a' || name[i] > 'z')
+			break;
+		else
+			name[i] -= OFFSET_CONST;
+		++i;
+	}
+
+	while (i < 8) {
+		if (name[i] == '\0' || name[i] == '.'){
+			++i;
+			break;
+		}
+		else{
+			fileName[i] = name[i];
+			++i;
+		}
+	}
+
+	for (j = i; j < 8; j++)
+		fileName[j] = ' ';
+
+	if (name[i] == '.') {
+		i++;
+		j=8;
+
+		while (j < 11){
+			if (name[i] != '\0')
+				fileName[j] = name[i];
+			else
+				break;
+			++i;
+			++j;
+		}
+
+		while (j < 12){
+			fileName[j] = ' ';
+			++j;
+		}
+	}
+
+	else {
+		while (i < 11){
+			fileName[i] = ' ';
+			++i;
+		}
+	}
+
+	fileName[11] = '\0';
+	
+	while(i < 32){
+		empty[i] = '\0';
+		++i;
+	}
+	
+	DIR_entry = find_dir_file_entry(currCluster, fileName);
+
+	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
+		if (DIR_entry.DIR_Attr == ATTR_CONST){
+			offset = return_entry_offset(currCluster, fileName);
+			if (!unopened(offset))
+				printf("Err: already opened!\n");
+
+			else {
+				next_cluster = (DIR_entry.DIR_FstClusHI << 16 | DIR_entry.DIR_FstClusLO);
+				empty_val_cluster(next_cluster);
+				fseek(file, offset, SEEK_SET);
+				fwrite(&empty, OFFSET_CONST, 1, file);
+			}
+		}
+		else
+			printf("Err: not a file!\n");
+	}
+	else
+		printf("Err: no such entry!\n");
+}
+/*-------------------------------------------*/
+/*
+ * A simple function meant to provide the user with
+ * information regarding the file system
+ *
+/*-------------------------------------------*/
+int info(){
+	long offset;
+	struct FSI BPB_FSI_info;
+
+	offset = bpb_32.BPB_FSI_info * bpb_32.BPB_BytsPerSec;
+	fseek(file, offset, SEEK_SET);
+	fread(&BPB_FSI_info, sizeof(struct FSI), 1, file);
+
+	printf("Number of free Sectors: %d\n", BPB_FSI_info.FSI_Free_Count);
+	printf("Sectors per Cluster: %d\n", bpb_32.BPB_SecPerClus);
+	printf("Total Sectors: %d\n", bpb_32.BPB_TotSec32);
+	printf("Bytes per Sector: %d\n", bpb_32.BPB_BytsPerSec);
+	printf("Sectors per FAT: %d\n", bpb_32.BPB_FATSz32);
+	printf("Number of FATs: %d\n", bpb_32.BPB_NumFATs);
+	
+	return 0;
+}
+/*-------------------------------------------*/
+/*
+ * List the contents of directory
+ *
+/*-------------------------------------------*/
+int ls(char *name){
+	int i = 0;
+	char ext[4];
+	unsigned int c;
+	long offset;
+	struct DIR DIR_entry;
+	c = currCluster;
+	
+	// Begin infinite loop
+	for(;;) {
+		offset = return_sector_offset(first_sector_cluster(c));
+		fseek(file, offset, SEEK_SET);
+		
+		long temp = eturn_sector_offset(first_sector_cluster(c)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
+		while (temp >= offset){
+
+			fread(&DIR_entry, sizeof(struct DIR), 1, file);
+			offset += OFFSET_CONST;
+			
+			if (DIR_entry.DIR_Name[0] == ENTRY_EMPTY)
+				continue;
+
+			else if (DIR_entry.DIR_Name[0] == ENTRY_LAST)
+				break;
+
+			else if (DIR_entry.DIR_Name[0] == 0x05)
+				DIR_entry.DIR_Name[0] = 0xE5;
+
+			if (DIR_entry.DIR_Attr != ATTRIBUTE_NAME_LONG){
+				while (i < 8){
+
+					if (DIR_entry.DIR_Name[i] != ' ')
+						name[i] = DIR_entry.DIR_Name[i];
+
+					else{
+						name[i] = '\0';
+						break;
+					}
+					++i;
+				}
+
+				name[8] = '\0';
+
+				while (i < 3){
+					if (DIR_entry.DIR_Name[i+8] != ' ')
+						ext[i]=DIR_entry.DIR_Name[i+8];
+
+					else{
+						ext[i] = '\0';
+						break;
+					}
+					++i;
+				}
+
+				ext[3] = '\0';
+
+				if (strcmp(name, ".") != 0 && strcmp(name, "..") != 0){
+					if (ext[0] != '\0')
+						printf("%s.%s\n", name, ext);
+					else
+						printf("%s\n", name);
+				}
+			}
+		}
+		c = FAT(c);
+		if (c >= END_OF_CLUSTER)
+			break;
+	}
+	return 0;
+}
+
+int create (char *name){
+	int i = 0;
+	int j = 0;
+	char fileName[12];
+	unsigned int newCluster;
+	long offset;
+	struct DIR emptyEntry, DIR_entry;
+	struct FSI BPB_FSI_info;
+
+
+	/* Setup fileName by looping through name */
+	while (name[i] != '\0') {
+		if (name[i] < 'a' || name[i] > 'z')
+			break;
+		else
+			name[i] -= OFFSET_CONST;
+		++i;
+	}
+
+	while (i < 8) {
+		if (name[i] == '\0' || name[i] == '.'){
+			++i;
+			break;
+		}
+		else{
+			fileName[i] = name[i];
+			++i;
+		}
+	}
+
+	for (j = i; j < 8; j++)
+		fileName[j] = ' ';
+
+	if (name[i] == '.') {
+		i++;
+		j=8;
+
+		while (j < 11){
+			if (name[i] != '\0')
+				fileName[j] = name[i];
+			else
+				break;
+			++i;
+			++j;
+		}
+
+		while (j < 12){
+			fileName[j] = ' ';
+			++j;
+		}
+	}
+
+	else {
+		while (i < 11){
+			fileName[i] = ' ';
+			++i;
+		}
+	}
+
+	/* Set the end of fileName to null character */
+	fileName[11] = '\0';
+	
+	// Get the directory entry
+	DIR_entry = find_dir_file_entry(currCluster, fileName);
+	if (DIR_entry.DIR_Name[0] == ENTRY_LAST){
+		offset = find_cluster_entry_empty(currCluster);
+
+		while (i < 11){
+			emptyEntry.DIR_Name[i] = fileName[i];
+			++i;
+		}
+
+		emptyEntry.DIR_Attr = ATTR_CONST;
+		emptyEntry.DIR_NTRes = ENTRY_LAST;
+		emptyEntry.DIR_FileSize = CLUSTER_END;
+		
+		fseek(file, bpb_32.BPB_FSI_info * bpb_32.BPB_BytsPerSec, SEEK_SET);
+		fread(&BPB_FSI_info, sizeof(struct FSI), 1, file);
+		
+		if (BPB_FSI_info.FSI_Nxt_Free == CLUSTER_END)
+			newCluster = 0x00000002;
+		else
+			newCluster = BPB_FSI_info.FSI_Nxt_Free + 1;
+
+		for ( ; ; newCluster++){
+			if (FAT_32(newCluster) == CLUSTER_END){
+
+				emptyEntry.DIR_FstClusLO = (newCluster & 0x0000FFFF);
+				emptyEntry.DIR_FstClusHI = (newCluster>>16);
+				change_val_cluster(END_OF_CLUSTER, newCluster);
+				BPB_FSI_info.FSI_Nxt_Free = newCluster;
+
+				fseek(file, bpb_32.BPB_FSI_info * bpb_32.BPB_BytsPerSec, SEEK_SET);
+				fwrite(&BPB_FSI_info, sizeof(struct FSI), 1, file);
+				fflush(file);
+				break;
+			}
+			if (newCluster == CLUSTER_END)
+				newCluster = 0x00000001;
+		}
+
+		fseek(file, offset, SEEK_SET);
+		fwrite(&emptyEntry, sizeof(struct DIR), 1, file);
+		fflush(file);
+	}
+	else
+		printf("Error! Entry already exists.\n");
+}
+/*-------------------------------------------*/
+/*
+ * Closes a file. Return an error if the file is already closed
+ *
+/*-------------------------------------------*/
+void close(char *name){
 	int i = 0;
 	int j = 0;
 	long offset;
@@ -309,9 +609,9 @@ void close_file(char *name){
 				}	
 
 				for (j = i; j < openedFileNum  -1; j++)
-					openedFile[j]=openedFile[j+1];
+					openedFile[j] = openedFile[j+1];
 
-				openedFile[j]=0;
+				openedFile[j] = 0;
 				openedFileNum--;
 
 				while( i < readFileNum){
@@ -353,7 +653,7 @@ void close_file(char *name){
  *
  *
 /*-------------------------------------------*/
-void openfile(char *name, char *mode){
+void open(char *name, char *mode){
 	int i = 0;
 	int j = 0;
 	long offset;
@@ -408,9 +708,9 @@ void openfile(char *name, char *mode){
 		}
 	}
 
-	fileName[11]='\0';
+	fileName[11] = '\0';
 	
-	DIR_entry=find_dir_file_entry(currCluster, fileName);
+	DIR_entry = find_dir_file_entry(currCluster, fileName);
 
 	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
 		if (DIR_entry.DIR_Attr == ATTR_CONST){
@@ -426,13 +726,13 @@ void openfile(char *name, char *mode){
 				if(mode == "r"){
 					openedReadFile[readFileNum] = offset;
 					readFileNum++;
-					printf("File has been for reading.\n");
+					printf("File opened for reading.\n");
 				}
 
 				else if(mode == "w"){
 					openedWriteFile[writeFileNum] = offset;
 					writeFileNum++;
-					printf("File has been for writing.\n");
+					printf("File opened for writing.\n");
 				}
 
 				else if(mode == "x"){
@@ -447,96 +747,6 @@ void openfile(char *name, char *mode){
 		}
 		else
 			printf("Err: no such file!\n");
-	}
-	else
-		printf("Err: no such entry!\n");
-}
-/*-------------------------------------------*/
-/*
- *
- *
-/*-------------------------------------------*/
-int rm (char *name){
-	int i, j;
-	long offset;
-	unsigned int next_cluster;
-	char fileName[12];
-	char empty[32];
-	struct DIR DIR_empty_entry, DIR_entry;
-	struct FSI FSInfo;
-	
-	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
-			name[i] -= OFFSET_CONST;
-		++i;
-	}
-
-	while (i < 8) {
-		if (name[i] == '\0' || name[i] == '.'){
-			++i;
-			break;
-		}
-		else{
-			fileName[i] = name[i];
-			++i;
-		}
-	}
-
-	for (j = i; j < 8; j++)
-		fileName[j] = ' ';
-
-	if (name[i] == '.') {
-		i++;
-		j=8;
-
-		while (j < 11){
-			if (name[i] != '\0')
-				fileName[j] = name[i];
-			else
-				break;
-			++i;
-			++j;
-		}
-
-		while (j < 12){
-			fileName[j] = ' ';
-			++j;
-		}
-	}
-
-	else {
-		while (i < 11){
-			fileName[i] = ' ';
-			++i;
-		}
-	}
-
-	fileName[11] = '\0';
-	
-	while(i < 32){
-		empty[i] = '\0';
-		++i;
-	}
-	
-	DIR_entry = find_dir_file_entry(currCluster, fileName);
-
-	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
-		if (DIR_entry.DIR_Attr == ATTR_CONST){
-			offset = return_entry_offset(currCluster, fileName);
-			if (!unopened(offset))
-				printf("Err: already opened!\n");
-
-			else {
-				next_cluster=(DIR_entry.DIR_FstClusHI << 16 | DIR_entry.DIR_FstClusLO);
-				EmptyValueOfCluster(next_cluster);
-				fseek(file, offset, SEEK_SET);
-				fwrite(&empty, OFFSET_CONST, 1, file);
-			}
-		}
-		else
-			printf("Err: not a file!\n");
 	}
 	else
 		printf("Err: no such entry!\n");
