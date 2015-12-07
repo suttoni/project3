@@ -44,8 +44,6 @@ FILE *file;
  int create(char *name);
  void open(char *name, char *mode);
  void close(char *name);
-
-
 /*-------------------------------------------*/
 /*
  * The main function - this is where the magic happens
