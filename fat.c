@@ -250,7 +250,8 @@ int cd(char *name){
  * char *name parameter in main
 /*-------------------------------------------*/
 int rm (char *name){
-	int i, j;
+	int i = 0;
+	int temp;
 	long offset;
 	unsigned int nextCluster;
 	char fileName[12];
@@ -289,7 +290,7 @@ int rm (char *name){
 
 		while (i < 11){
 			if (name[temp] != '\0')
-				fileName[j] = name[temp++];
+				fileName[i] = name[temp++];
 			else{
 				temp = i;
 				break;
@@ -498,7 +499,7 @@ int create (char *name){
 
 		while (i < 11){
 			if (name[temp] != '\0')
-				fileName[j] = name[temp++];
+				fileName[i] = name[temp++];
 			else{
 				temp = i;
 				break;
@@ -619,7 +620,7 @@ void open(char *name, char *mode){
 
 		while (i < 11){
 			if (name[temp] != '\0')
-				fileName[j] = name[temp++];
+				fileName[i] = name[temp++];
 			else{
 				temp = i;
 				break;
@@ -733,7 +734,7 @@ void close(char *name){
 
 		while (i < 11){
 			if (name[temp] != '\0')
-				fileName[j] = name[temp++];
+				fileName[i] = name[temp++];
 			else{
 				temp = i;
 				break;
@@ -774,10 +775,10 @@ void close(char *name){
 					++i;
 				}	
 
-				for (j = i; j < openedFileNum  -1; j++)
-					openedFile[j] = openedFile[j+1];
+				for (temp = i; temp < openedFileNum - 1; temp++)
+					openedFile[temp] = openedFile[temp+1];
 
-				openedFile[j] = 0;
+				openedFile[temp] = 0;
 				openedFileNum--;
 
 				while( i < readFileNum){
@@ -787,10 +788,10 @@ void close(char *name){
 					++i;
 				}
 
-				for (j = i; j < readFileNum-1; j++)
-                    openedReadFile[j]=openedReadFile[j+1];
+				for (temp = i; temp < readFileNum - 1; temp++)
+                    openedReadFile[temp]=openedReadFile[temp + 1];
 
-                openedReadFile[j] = 0;
+                openedReadFile[temp] = 0;
                 readFileNum--;
 
 				while (i < writeFileNum){
@@ -800,8 +801,8 @@ void close(char *name){
                     ++i;
                 }
 
-                for (j = i; j < writeFileNum-1; j++)
-                    openedWriteFile[j]=openedWriteFile[j+1];
+                for (temp = i; temp < writeFileNum - 1; temp++)
+                    openedWriteFile[temp]=openedWriteFile[temp + 1];
 
                 writeFileNum--;
 			}
