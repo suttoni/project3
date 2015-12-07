@@ -641,10 +641,10 @@ void open(char *name, char *mode){
 
 				else if(mode == "x"){
 					openedWriteFile[writeFileNum] = offset;
-                    writeFileNum++;
+                    			writeFileNum++;
 					openedReadFile[readFileNum] = offset;
-                    readFileNum++;
-                    printf("File has been opened for reading and writing.\n");
+                    			readFileNum++;
+                    			printf("File has been opened for reading and writing.\n");
 				}
 				printf("Err: Invalid mode!\n");
 			}
@@ -747,22 +747,22 @@ void close(char *name){
 				}
 
 				for (j = i; j < readFileNum-1; j++)
-                    openedReadFile[j]=openedReadFile[j+1];
+                    			openedReadFile[j]=openedReadFile[j+1];
 
-                openedReadFile[j] = 0;
-                readFileNum--;
+                		openedReadFile[j] = 0;
+                		readFileNum--;
 
 				while (i < writeFileNum){
-                    if (openedWriteFile[i] == offset){
-                        break;
-                    }
-                    ++i;
-                }
+		                    if (openedWriteFile[i] == offset){
+		                        break;
+		                    }
+		                    ++i;
+        			 }
 
-                for (j = i; j < writeFileNum-1; j++)
-                    openedWriteFile[j]=openedWriteFile[j+1];
+                	for (j = i; j < writeFileNum-1; j++)
+                		openedWriteFile[j]=openedWriteFile[j+1];
 
-                writeFileNum--;
+        		 writeFileNum--;
 			}
 			else 
 				printf("Err: not opened!\n");
