@@ -719,6 +719,7 @@ void close(char *name){
 	/* Set the end of fileName to null character */
 	fileName[11] = '\0';
 	
+	// Get the directory entry
 	DIR_entry = find_dir_file_entry(currCluster, fileName);
 
 	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
