@@ -261,9 +261,7 @@ int rm (char *name){
 	/* The following series of loops set up the file name by accessing indices in name */
 	// Prep file name before creating it
 	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
+		if (name[i] >= 'a' && name[i] <= 'z')
 			name[i] -= OFFSET_CONST;
 		++i;
 	}
@@ -470,9 +468,7 @@ int create (char *name){
 	/* The following series of loops set up the file name by accessing indices in name */
 	// Prep file name before creating it
 	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
+		if (name[i] >= 'a' && name[i] <= 'z')
 			name[i] -= OFFSET_CONST;
 		++i;
 	}
@@ -591,9 +587,7 @@ void open(char *name, char *mode){
 	/* The following series of loops set up the file name by accessing indices in name */
 	// Prep file name before creating it
 	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
+		if (name[i] >= 'a' && name[i] <= 'z')
 			name[i] -= OFFSET_CONST;
 		++i;
 	}
@@ -705,9 +699,7 @@ void close(char *name){
 	/* The following series of loops set up the file name by accessing indices in name */
 	// Prep file name before creating it
 	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
+		if (name[i] >= 'a' && name[i] <= 'z')
 			name[i] -= OFFSET_CONST;
 		++i;
 	}
