@@ -1,6 +1,8 @@
 /*-------------------------------------------*/
 /*
- *
+ * FAT_32 Filesystem - Project 3 - Contains the function definitions for utility functions
+ * that are needed in fat.c
+ * Team Satisfries - Ian Sutton, Ibrahim Atiya, Sai Gunasegaran, Yilin Wang
  *
 /*-------------------------------------------*/
  extern struct FSI BPB_FSI_info;
@@ -9,11 +11,12 @@
  extern int openedFileNum;
  extern FILE *file;
 
+ // A couple of global variables
  #define CLUSTER_END 0xFFFFFFFF
  #define OFFSET_CONST 32
 /*-------------------------------------------*/
 /*
- *
+ * Forward function declarations
  *
 /*-------------------------------------------*/
 // Declaration of function of struct type "DIR" *found in FAT_32Structs.h*
@@ -30,26 +33,28 @@ unsigned int return_clus_dir_entry(unsigned int cluster, char *name);
 // Long declarations
 long return_sector_offset(long sec);
 long first_sector_cluster(unsigned int cluster);
-long find_cluster_ENTRY_EMPTY(unsigned int cluster);
+long find_cluster_empty_entry(unsigned int cluster);
 long return_entry_offset(unsigned int cluster, char *name);
 long return_path_cluster(char *string);
 
 /*-------------------------------------------*/
 /*
- *
+ * Finds a directory entry with the given cluster and name
  *
 /*-------------------------------------------*/
 
 struct DIR find_dir_file_entry(unsigned int cluster, char *name){
 	int i;
 	long offset;
-	char file_name[12];
+	char fileName[12];
 	struct DIR DIR_entry;
 
+	// Begin loop
 	for(;;){
 		offset = return_sector_offset(first_sector_cluster(cluster));
 		fseek(file, offset, SEEK_SET);
 
+		// Temp variable with the sector offset
 		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 		while (temp >= offset){
 
@@ -67,14 +72,14 @@ struct DIR find_dir_file_entry(unsigned int cluster, char *name){
 			if (DIR_entry.DIR_Attr != ATTRIBUTE_NAME_LONG){
 
 				for (i=0; i<11; i++)
-					file_name[i]=DIR_entry.DIR_Name[i];
+					fileName[i]=DIR_entry.DIR_Name[i];
 
-				file_name[11]= '\0';
+				fileName[11]= '\0';
 
-				if (strcmp(file_name, name) == 0)
+				if (strcmp(fileName, name) == 0)
 					return DIR_entry;
 			}
-			offset+=32;
+			offset += 32;
 		}
 
 		cluster = FAT_32(cluster);
@@ -85,7 +90,7 @@ struct DIR find_dir_file_entry(unsigned int cluster, char *name){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Changes the value of a given cluster with a given value
  *
 /*-------------------------------------------*/
 void change_val_cluster(unsigned int value, unsigned int cluster){
@@ -97,7 +102,7 @@ void change_val_cluster(unsigned int value, unsigned int cluster){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Empties a given cluster
  *
 /*-------------------------------------------*/
 void empty_val_cluster(unsigned int cluster){
@@ -114,7 +119,7 @@ void empty_val_cluster(unsigned int cluster){
 	offset = bpb_32.BPB_RsvdSecCnt*bpb_32.BPB_BytsPerSec + cluster * 4;
 
 	if (FAT_32(cluster) <= 0x0FFFFFEF && FAT_32(cluster) >= 0x00000002)
-		empty_val_cluster(FAT_32(cluster));		//recursively empty all the cluster linked
+		empty_val_cluster(FAT_32(cluster));	// Recursively empty the cluster
 
 	fseek(file, return_sector_offset(first_sector_cluster(cluster)), SEEK_SET);
 	fwrite(empty, bpb_32.BPB_BytsPerSec*bpb_32.BPB_SecPerClus, 1, file);
@@ -123,7 +128,7 @@ void empty_val_cluster(unsigned int cluster){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Checks to see if two names are equal
  *
 /*-------------------------------------------*/
 int equals(unsigned char name1[], unsigned char name2[]){
@@ -136,7 +141,7 @@ int equals(unsigned char name1[], unsigned char name2[]){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Essentially a boolean - returns 1 if unopened, 0 otherwise
  *
 /*-------------------------------------------*/
 int unopened(long offset){
@@ -150,35 +155,37 @@ int unopened(long offset){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Set up of the FAT_32 - returns the next cluster
  *
 /*-------------------------------------------*/
 unsigned int FAT_32(unsigned int cluster){
-	unsigned int next_cluster;
+	unsigned int nextCluster;
 	long offset;
 
 	offset = bpb_32.BPB_RsvdSecCnt*bpb_32.BPB_BytsPerSec + cluster*4;
 	fseek(file, offset, SEEK_SET);
-	fread(&next_cluster, sizeof(unsigned int), 1, file);
+	fread(&nextCluster, sizeof(unsigned int), 1, file);
 
-	return next_cluster;
+	return nextCluster;
 }
 /*-------------------------------------------*/
 /*
- *
+ * Returns the directory entry of a given cluster and directory name
  *
 /*-------------------------------------------*/
 unsigned int return_clus_dir_entry(unsigned int cluster, char *name){
 	int i = 0;
-	char file_name[12];
+	char fileName[12];
 	long offset;
 	struct DIR DIR_entry;
 
+	// Begin loop
 	for(;;){
 		offset = return_sector_offset(first_sector_cluster(cluster));
 		fseek(file, offset, SEEK_SET);
-		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 
+		// Temp value to be compared with offset
+		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 		while ( temp >= offset ){
 			fread(&DIR_entry, sizeof(struct DIR), 1, file);
 			offset+=32;
@@ -193,11 +200,11 @@ unsigned int return_clus_dir_entry(unsigned int cluster, char *name){
 			if (DIR_entry.DIR_Attr != ATTRIBUTE_NAME_LONG){
 
 				for (i; i < 11; i++)
-					file_name[i] = DIR_entry.DIR_Name[i];
+					fileName[i] = DIR_entry.DIR_Name[i];
 
-				file_name[11] = '\0';
+				fileName[11] = '\0';
 
-				if (strcmp(file_name, name) == 0)
+				if (strcmp(fileName, name) == 0)
 					return (DIR_entry.DIR_FstClusHI << 16 | DIR_entry.DIR_FstClusLO);
 			}
 		}
@@ -210,7 +217,7 @@ unsigned int return_clus_dir_entry(unsigned int cluster, char *name){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Returns the sector offset from a given sector
  *
 /*-------------------------------------------*/
 long return_sector_offset(long sec){
@@ -218,7 +225,7 @@ long return_sector_offset(long sec){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Returns the first sector of a given cluster
  *
 /*-------------------------------------------*/
 long first_sector_cluster(unsigned int cluster){
@@ -226,21 +233,23 @@ long first_sector_cluster(unsigned int cluster){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Finds an empty entry in a given cluster
  *
 /*-------------------------------------------*/
 long find_cluster_empty_entry(unsigned int cluster){
 	int i;
-	unsigned int next_cluster;
+	unsigned int nextCluster;
 	long offset;
 	struct FSI BPB_FSI_info;
 	struct DIR DIR_entry;
 
+	// Begin loop
 	for(;;){
 		offset=return_sector_offset(first_sector_cluster(cluster));
 		fseek(file, offset, SEEK_SET);
-		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 
+		// Temp variable to compare with offset
+		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 		while ( temp >= offset ){
 			fread(&DIR_entry, sizeof(struct DIR), 1, file);
 
@@ -257,25 +266,25 @@ long find_cluster_empty_entry(unsigned int cluster){
 			fread(&BPB_FSI_info, sizeof(struct FSI), 1, file);
 			
 			if (BPB_FSI_info.FSI_Nxt_Free != CLUSTER_END)
-				next_cluster = BPB_FSI_info.FSI_Nxt_Free + 1;
+				nextCluster = BPB_FSI_info.FSI_Nxt_Free + 1;
 				
 			else
-				next_cluster = 0x00000002;
+				nextCluster = 0x00000002;
 
-			for ( ; ; next_cluster++){
-				if (FAT_32(next_cluster) == 0x00000000){
-					change_val_cluster(next_cluster, cluster);
-					change_val_cluster(END_OF_CLUSTER, next_cluster);
+			for ( ; ; nextCluster++){
+				if (FAT_32(nextCluster) == 0x00000000){
+					change_val_cluster(nextCluster, cluster);
+					change_val_cluster(END_OF_CLUSTER, nextCluster);
 					BPB_FSI_info.FSI_Nxt_Free=cluster;
 					fseek(file, bpb_32.BPB_FSI_info*bpb_32.BPB_BytsPerSec, SEEK_SET);
 					fwrite(&BPB_FSI_info, sizeof(struct FSI), 1, file);
 					fflush(file);
 					break;
 				}
-				if (next_cluster == CLUSTER_END)
-					next_cluster = 0x00000001;
+				if (nextCluster == CLUSTER_END)
+					nextCluster = 0x00000001;
 			}
-			cluster = next_cluster;
+			cluster = nextCluster;
 		}
 		else
 			cluster = FAT_32(cluster);
@@ -283,20 +292,22 @@ long find_cluster_empty_entry(unsigned int cluster){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Returns the entry offset of a given cluster and name
  *
 /*-------------------------------------------*/
 long return_entry_offset(unsigned int cluster, char *name){	
 	int i;
-	char file_name[12];
+	char fileName[12];
 	long offset;
 	struct DIR DIR_entry;
 
+	// Begin loop
 	for(;;){
 		offset = return_sector_offset(first_sector_cluster(cluster));
 		fseek(file, offset, SEEK_SET);
-		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 
+		// Temp variable to compare with offset
+		long temp = return_sector_offset(first_sector_cluster(cluster)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 		while ( temp >= offset ){
 			fread(&DIR_entry, sizeof(struct DIR), 1, file);
 
@@ -306,11 +317,11 @@ long return_entry_offset(unsigned int cluster, char *name){
 			if (DIR_entry.DIR_Attr != ATTRIBUTE_NAME_LONG){
 
 				for (i=0; i<11; i++)
-					file_name[i]=DIR_entry.DIR_Name[i];
+					fileName[i]=DIR_entry.DIR_Name[i];
 
-				file_name[11] = '\0';
+				fileName[11] = '\0';
 
-				if (strcmp(file_name, name) == 0)
+				if (strcmp(fileName, name) == 0)
 					return offset;
 			}
 
@@ -323,8 +334,8 @@ long return_entry_offset(unsigned int cluster, char *name){
 	}
 }
 /*-------------------------------------------*/
-/*
- *
+/* 
+ * Returns the cluster of the given path 'string'
  *
 /*-------------------------------------------*/
 long return_path_cluster(char *string){
@@ -334,7 +345,8 @@ long return_path_cluster(char *string){
 	unsigned char name[11];
 	cluster = bpb_32.BPB_RootClus;
 
-	while(1){
+	// Begin loop
+	for(;;){
 		for (i; ; i++){
 
 			if (string[i] != '/' && string[i] != '\0'){
