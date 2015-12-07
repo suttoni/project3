@@ -1,6 +1,7 @@
 /*-------------------------------------------*/
 /*
- *
+ * FAT_32 Filesystem - Project 3
+ * Team Satisfries - Ian Sutton, Ibrahim Atiya, Sai Gunasegaran, Yilin Wang
  *
 /*-------------------------------------------*/
 #include "fatStructs.h"
@@ -10,8 +11,8 @@
 
 /*-------------------------------------------*/
 /*
- *
- *
+ * Setting up our variables to be used through  
+ * the program
 /*-------------------------------------------*/
 char *fatImgName;
 char *parentDir;
@@ -33,7 +34,7 @@ FILE *file;
 
 /*-------------------------------------------*/
 /*
- *
+ * Forward function declarations
  *
 /*-------------------------------------------*/
  int cd(char *name);
@@ -47,8 +48,9 @@ FILE *file;
 
 /*-------------------------------------------*/
 /*
- *
- *
+ * The main function - this is where the magic happens
+ * Calls the necessary functions depending on the input
+ * from the user
 /*-------------------------------------------*/
 int main(int argc, char *argv[]){
 	int i = 0;
@@ -62,13 +64,15 @@ int main(int argc, char *argv[]){
 	workingDir = (char*)malloc(200*sizeof(char));
 	parentDir = (char*)malloc(200*sizeof(char));
 
+	// Initialize file arrays by setting their contents to 0
 	while(i < 100){
-		openedFile[i]=0;
+		openedFile[i] = 0;
 		openedReadFile[i] = 0;
 		openedWriteFile[i] = 0;
 		++i;
 	}
 	
+	// Begin usage
 	if (argc == 2){
 		if (file = fopen(argv[1], "rb+")){
 			fread(&bpb_32, sizeof(struct BPB_32), 1, file);
@@ -81,6 +85,7 @@ int main(int argc, char *argv[]){
 			parentDir[0] = '\0';
 			parentCluster = -1;
 			
+			// Begin infinite loop and gather information from user
 			for(;;){
 				printf("%s:%s>", fatImgName, workingDir);
 				scanf("%s", operation);
@@ -154,7 +159,7 @@ int main(int argc, char *argv[]){
 }
 /*-------------------------------------------*/
 /*
- *
+ * Changes to the directory given through name
  *
 /*-------------------------------------------*/
 int cd(char *name){
@@ -163,6 +168,7 @@ int cd(char *name){
 	char fileName[12];
 	struct DIR DIR_entry;
 
+	// Set up the fileName 
 	while (name[i] != '\0'){
 		if (name[i] >= 'a' && name[i] <= 'z')
 			name[i] -= OFFSET_CONST;
@@ -209,6 +215,7 @@ int cd(char *name){
 		}
 	}
 	else{
+		// Get the directory entry
 		DIR_entry = find_dir_file_entry(currCluster, fileName);
 
 		if (DIR_entry.DIR_Name[0] == ENTRY_LAST)
@@ -236,11 +243,11 @@ int cd(char *name){
 		}
 	}
 	return 0;
-}
+}// End cd
 /*-------------------------------------------*/
 /*
- *
- *
+ * Removes a file given through the 
+ * char *name parameter in main
 /*-------------------------------------------*/
 int rm (char *name){
 	int i, j;
@@ -250,6 +257,7 @@ int rm (char *name){
 	char empty[32];
 	struct DIR DIR_entry;
 	
+	/* The following series of loops set up the file name by accessing indices in name */
 	while (name[i] != '\0') {
 		if (name[i] < 'a' || name[i] > 'z')
 			break;
@@ -298,6 +306,7 @@ int rm (char *name){
 		}
 	}
 
+	/* Set the end of fileName to null character */
 	fileName[11] = '\0';
 	
 	while(i < 32){
@@ -305,6 +314,7 @@ int rm (char *name){
 		++i;
 	}
 	
+	// Get the directory entry
 	DIR_entry = find_dir_file_entry(currCluster, fileName);
 
 	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
@@ -325,7 +335,7 @@ int rm (char *name){
 	}
 	else
 		printf("Err: no such entry!\n");
-}
+}// End rm
 /*-------------------------------------------*/
 /*
  * A simple function meant to provide the user with
@@ -336,10 +346,12 @@ int info(){
 	long offset;
 	struct FSI BPB_FSI_info;
 
+	// Get the offset
 	offset = bpb_32.BPB_FSI_info * bpb_32.BPB_BytsPerSec;
 	fseek(file, offset, SEEK_SET);
 	fread(&BPB_FSI_info, sizeof(struct FSI), 1, file);
 
+	// Print the needed information
 	printf("Number of free Sectors: %d\n", BPB_FSI_info.FSI_Free_Count);
 	printf("Sectors per Cluster: %d\n", bpb_32.BPB_SecPerClus);
 	printf("Total Sectors: %d\n", bpb_32.BPB_TotSec32);
@@ -348,7 +360,7 @@ int info(){
 	printf("Number of FATs: %d\n", bpb_32.BPB_NumFATs);
 	
 	return 0;
-}
+}// End info
 /*-------------------------------------------*/
 /*
  * List the contents of directory
@@ -367,7 +379,8 @@ int ls(char *name){
 		offset = return_sector_offset(first_sector_cluster(c));
 		fseek(file, offset, SEEK_SET);
 		
-		long temp = eturn_sector_offset(first_sector_cluster(c)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
+		// Temp variable for comparison to offset
+		long temp = return_sector_offset(first_sector_cluster(c)) + bpb_32.BPB_BytsPerSec * bpb_32.BPB_SecPerClus;
 		while (temp >= offset){
 
 			fread(&DIR_entry, sizeof(struct DIR), 1, file);
@@ -423,8 +436,12 @@ int ls(char *name){
 			break;
 	}
 	return 0;
-}
-
+}// End ls
+/*-------------------------------------------*/
+/*
+ * Creates a file with the parameter char *name
+ * provided by the user in main
+/*-------------------------------------------*/
 int create (char *name){
 	int i = 0;
 	int j = 0;
@@ -435,7 +452,7 @@ int create (char *name){
 	struct FSI BPB_FSI_info;
 
 
-	/* Setup fileName by looping through name */
+	/* The following series of loops set up the file name by accessing indices in name */
 	while (name[i] != '\0') {
 		if (name[i] < 'a' || name[i] > 'z')
 			break;
@@ -497,6 +514,7 @@ int create (char *name){
 			++i;
 		}
 
+		// Set up the directory 
 		emptyEntry.DIR_Attr = ATTR_CONST;
 		emptyEntry.DIR_NTRes = ENTRY_LAST;
 		emptyEntry.DIR_FileSize = CLUSTER_END;
@@ -532,19 +550,20 @@ int create (char *name){
 	}
 	else
 		printf("Error! Entry already exists.\n");
-}
+}// End create
 /*-------------------------------------------*/
 /*
- * Closes a file. Return an error if the file is already closed
- *
+ * Opens a file name with the mode given by
+ * user in main
 /*-------------------------------------------*/
-void close(char *name){
+void open(char *name, char *mode){
 	int i = 0;
 	int j = 0;
 	long offset;
 	char fileName[12];
 	struct DIR DIR_entry;
 	
+	/* The following series of loops set up the file name by accessing indices in name */
 	while (name[i] != '\0') {
 		if (name[i] < 'a' || name[i] > 'z')
 			break;
@@ -593,6 +612,113 @@ void close(char *name){
 		}
 	}
 
+	/* Set the end of fileName to null character */
+	fileName[11] = '\0';
+	
+	// Get the directory entry
+	DIR_entry = find_dir_file_entry(currCluster, fileName);
+
+	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
+		if (DIR_entry.DIR_Attr == ATTR_CONST){
+			offset = return_entry_offset(currCluster, fileName);
+
+			if (!unopened(offset))
+				printf("Err: already opened!\n");
+
+			else {
+				openedFile[openedFileNum]=offset;
+				openedFileNum++;
+
+				if(mode == "r"){
+					openedReadFile[readFileNum] = offset;
+					readFileNum++;
+					printf("File opened for reading.\n");
+				}
+
+				else if(mode == "w"){
+					openedWriteFile[writeFileNum] = offset;
+					writeFileNum++;
+					printf("File opened for writing.\n");
+				}
+
+				else if(mode == "x"){
+					openedWriteFile[writeFileNum] = offset;
+                    writeFileNum++;
+					openedReadFile[readFileNum] = offset;
+                    readFileNum++;
+                    printf("File has been opened for reading and writing.\n");
+				}
+				printf("Err: Invalid mode!\n");
+			}
+		}
+		else
+			printf("Err: no such file!\n");
+	}
+	else
+		printf("Err: no such entry!\n");
+}// End open
+/*-------------------------------------------*/
+/*
+ * Closes a file. Return an error if the file is already closed
+ *
+/*-------------------------------------------*/
+void close(char *name){
+	int i = 0;
+	int j = 0;
+	long offset;
+	char fileName[12];
+	struct DIR DIR_entry;
+
+	/* The following series of loops set up the file name by accessing indices in name */	
+	while (name[i] != '\0') {
+		if (name[i] < 'a' || name[i] > 'z')
+			break;
+		else
+			name[i] -= OFFSET_CONST;
+		++i;
+	}
+
+	while (i < 8) {
+		if (name[i] == '\0' || name[i] == '.'){
+			++i;
+			break;
+		}
+		else{
+			fileName[i] = name[i];
+			++i;
+		}
+	}
+
+	for (j = i; j < 8; j++)
+		fileName[j] = ' ';
+
+	if (name[i] == '.') {
+		i++;
+		j=8;
+
+		while (j < 11){
+			if (name[i] != '\0')
+				fileName[j] = name[i];
+			else
+				break;
+			++i;
+			++j;
+		}
+
+		while (j < 12){
+			fileName[j] = ' ';
+			++j;
+		}
+	}
+
+	else {
+		while (i < 11){
+			fileName[i] = ' ';
+			++i;
+		}
+	}
+
+	/* Set the end of fileName to null character */
 	fileName[11] = '\0';
 	
 	DIR_entry = find_dir_file_entry(currCluster, fileName);
@@ -647,107 +773,4 @@ void close(char *name){
 	}
 	else
 		printf("Err: no such entry!\n");
-}
-/*-------------------------------------------*/
-/*
- *
- *
-/*-------------------------------------------*/
-void open(char *name, char *mode){
-	int i = 0;
-	int j = 0;
-	long offset;
-	char fileName[12];
-	struct DIR DIR_entry;
-	
-	while (name[i] != '\0') {
-		if (name[i] < 'a' || name[i] > 'z')
-			break;
-		else
-			name[i] -= OFFSET_CONST;
-		++i;
-	}
-
-	while (i < 8) {
-		if (name[i] == '\0' || name[i] == '.'){
-			++i;
-			break;
-		}
-		else{
-			fileName[i] = name[i];
-			++i;
-		}
-	}
-
-	for (j = i; j < 8; j++)
-		fileName[j] = ' ';
-
-	if (name[i] == '.') {
-		i++;
-		j=8;
-
-		while (j < 11){
-			if (name[i] != '\0')
-				fileName[j] = name[i];
-			else
-				break;
-			++i;
-			++j;
-		}
-
-		while (j < 12){
-			fileName[j] = ' ';
-			++j;
-		}
-	}
-
-	else {
-		while (i < 11){
-			fileName[i] = ' ';
-			++i;
-		}
-	}
-
-	fileName[11] = '\0';
-	
-	DIR_entry = find_dir_file_entry(currCluster, fileName);
-
-	if (DIR_entry.DIR_Name[0] != ENTRY_LAST){
-		if (DIR_entry.DIR_Attr == ATTR_CONST){
-			offset = return_entry_offset(currCluster, fileName);
-
-			if (!unopened(offset))
-				printf("Err: already opened!\n");
-
-			else {
-				openedFile[openedFileNum]=offset;
-				openedFileNum++;
-
-				if(mode == "r"){
-					openedReadFile[readFileNum] = offset;
-					readFileNum++;
-					printf("File opened for reading.\n");
-				}
-
-				else if(mode == "w"){
-					openedWriteFile[writeFileNum] = offset;
-					writeFileNum++;
-					printf("File opened for writing.\n");
-				}
-
-				else if(mode == "x"){
-					openedWriteFile[writeFileNum] = offset;
-                    writeFileNum++;
-					openedReadFile[readFileNum] = offset;
-                    readFileNum++;
-                    printf("File has been opened for reading and writing.\n");
-				}
-				printf("Err: Invalid mode!\n");
-			}
-		}
-		else
-			printf("Err: no such file!\n");
-	}
-	else
-		printf("Err: no such entry!\n");
-}
+}// End close
