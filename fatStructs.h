@@ -1,11 +1,15 @@
+/*-------------------------------------------*/
+/*
+ * FAT_32 Filesystem - Project 3 - Header for structs and a few global constants
+ * Team Satisfries - Ian Sutton, Ibrahim Atiya, Sai Gunasegaran, Yilin Wang
+ *
+/*-------------------------------------------*/
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-
-
 /*-------------------------------------------*/
 /*
- *
+ * Constant declaratios to be used through the program
  *
 /*-------------------------------------------*/
 #define END_OF_CLUSTER 0x0FFFFFF8
